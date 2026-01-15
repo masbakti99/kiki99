@@ -57,7 +57,6 @@ MinTypeSpeed = 50,
 MaxTypeSpeed = 3000,
 KeyboardLayout = "QWERTY",
 PanicTimerThreshold = 3,
-BlatantTimerThreshold = 2,
 AutoBlatantMode = false
 }
 local function SaveConfig()
@@ -554,8 +553,8 @@ sep.BackgroundColor3 = Color3.fromRGB(45, 45, 50)
 local settingsCollapsed = true
 local function UpdateLayout()
 if settingsCollapsed then
-Tween(SettingsFrame, {Size = UDim2.new(1, 0, 0, 185), Position = UDim2.new(0, 0, 1, -185)})
-Tween(ScrollList, {Size = UDim2.new(1, -10, 1, -305)})
+Tween(SettingsFrame, {Size = UDim2.new(1, 0, 0, 155), Position = UDim2.new(0, 0, 1, -155)})
+Tween(ScrollList, {Size = UDim2.new(1, -10, 1, -275)})
 TogglesFrame.Visible = false
 else
 Tween(SettingsFrame, {Size = UDim2.new(1, 0, 0, 495), Position = UDim2.new(0, 0, 1, -495)})
@@ -851,35 +850,7 @@ SetupSlider(PanicTimerBtn, PanicTimerBg, PanicTimerFill, function(pct)
 panicTimerThreshold = math.floor(1 + pct * 13)
 Config.PanicTimerThreshold = panicTimerThreshold
 PanicTimerFill.Size = UDim2.new(pct, 0, 1, 0)
-PanicTimerLabel.Text = string.format("Humanize Panic: %ds", panicTimerThreshold)
-end)
-local BlatantTimerLabel = Instance.new("TextLabel", SlidersFrame)
-BlatantTimerLabel.Text = string.format("Auto Blatant: %ds", blatantTimerThreshold)
-BlatantTimerLabel.Font = Enum.Font.GothamMedium
-BlatantTimerLabel.TextSize = 11
-BlatantTimerLabel.TextColor3 = Color3.fromRGB(255, 120, 120)
-BlatantTimerLabel.Size = UDim2.new(1, -30, 0, 18)
-BlatantTimerLabel.Position = UDim2.new(0, 15, 0, 114)
-BlatantTimerLabel.BackgroundTransparency = 1
-BlatantTimerLabel.TextXAlignment = Enum.TextXAlignment.Left
-local BlatantTimerBg = Instance.new("Frame", SlidersFrame)
-BlatantTimerBg.Size = UDim2.new(1, -30, 0, 6)
-BlatantTimerBg.Position = UDim2.new(0, 15, 0, 134)
-BlatantTimerBg.BackgroundColor3 = THEME.Slider
-Instance.new("UICorner", BlatantTimerBg).CornerRadius = UDim.new(1, 0)
-local blatantTimerPct = (blatantTimerThreshold - 1) / 13
-local BlatantTimerFill = Instance.new("Frame", BlatantTimerBg)
-BlatantTimerFill.Size = UDim2.new(blatantTimerPct, 0, 1, 0)
-BlatantTimerFill.BackgroundColor3 = Color3.fromRGB(255, 80, 80)
-Instance.new("UICorner", BlatantTimerFill).CornerRadius = UDim.new(1, 0)
-local BlatantTimerBtn = Instance.new("TextButton", BlatantTimerBg)
-BlatantTimerBtn.Size = UDim2.new(1,0,1,0)
-BlatantTimerBtn.BackgroundTransparency = 1
-BlatantTimerBtn.Text = ""
-SetupSlider(BlatantTimerBtn, BlatantTimerBg, BlatantTimerFill, function(pct)
-blatantTimerThreshold = math.floor(1 + pct * 13)
-Config.BlatantTimerThreshold = blatantTimerThreshold
-BlatantTimerLabel.Text = string.format("Auto Blatant: %ds", blatantTimerThreshold)
+PanicTimerLabel.Text = string.format("Panic Timer: %ds", panicTimerThreshold)
 end)
 local function CreateToggle(text, pos, callback)
 local btn = Instance.new("TextButton", TogglesFrame)
@@ -2421,11 +2392,11 @@ StatusText.TextColor3 = THEME.Success
 end
 lastTypeVisible = typeVisible
 if autoBlatantMode and seconds then
-if seconds < blatantTimerThreshold and not isBlatant then
+if seconds < panicTimerThreshold and not isBlatant then
 isBlatant = true
 BlatantBtn.Text = "Blatant Mode: ON"
 BlatantBtn.TextColor3 = Color3.fromRGB(255, 80, 80)
-elseif seconds >= blatantTimerThreshold and isBlatant then
+elseif seconds >= panicTimerThreshold and isBlatant then
 isBlatant = false
 BlatantBtn.Text = "Blatant Mode: OFF"
 BlatantBtn.TextColor3 = THEME.SubText
