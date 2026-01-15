@@ -69,7 +69,7 @@ local function LoadList(fname)
 end
 LoadList(fileName); if LoadingGui then LoadingGui:Destroy() end
 
-table.sort(Words); Buckets = {}
+table.sort(Words); local Buckets = {}
 for _, w in ipairs(Words) do local c = w:sub(1,1) or ""; if c == "" then c = "#" end; Buckets[c] = Buckets[c] or {}; table.insert(Buckets[c], w) end
 if Config.CustomWords then
     for _, w in ipairs(Config.CustomWords) do
