@@ -825,7 +825,7 @@ ThinkFill.Size = UDim2.new(pct, 0, 1, 0)
 ThinkLabel.Text = string.format("Think: %.2fs", thinkDelayCurrent)
 end)
 local PanicTimerLabel = Instance.new("TextLabel", SlidersFrame)
-PanicTimerLabel.Text = string.format("Humanize Panic: %ds", panicTimerThreshold)
+PanicTimerLabel.Text = string.format("Panic Timer: %ds", panicTimerThreshold)
 PanicTimerLabel.Font = Enum.Font.GothamMedium
 PanicTimerLabel.TextSize = 11
 PanicTimerLabel.TextColor3 = THEME.SubText
@@ -1701,10 +1701,6 @@ lastTypingStart = tick()
 local isPanicMode = false
 local panicCPM = currentCPM
 local panicErrorRate = errorRate
-
-if isBlatant then
-	panicErrorRate = 0
-end
 if useHumanization and currentTimer and currentTimer < panicTimerThreshold and not isBlatant then
 isPanicMode = true
 panicCPM = 1100
