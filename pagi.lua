@@ -2,20 +2,10 @@ local HttpService = game:GetService("HttpService")
 local CoreGui = game:GetService("CoreGui")
 local Players = game:GetService("Players")
 local RbxAnalyticsService = game:GetService("RbxAnalyticsService")
-local VirtualInputManager = game:GetService("VirtualInputManager")
-local UserInputService = game:GetService("UserInputService")
-local RunService = game:GetService("RunService")
-local TweenService = game:GetService("TweenService")
-local LogService = game:GetService("LogService")
-local GuiService = game:GetService("GuiService")
-local TeleportService = game:GetService("TeleportService")
-local VirtualUser = game:GetService("VirtualUser")
 
--- Compatibility wrappers
 local cloneref = cloneref or function(o) return o end
 local gethui = gethui or function() return CoreGui end
 
--- Secure references
 local CoreGui = cloneref(game:GetService("CoreGui"))
 local Players = cloneref(game:GetService("Players"))
 local VirtualInputManager = cloneref(game:GetService("VirtualInputManager"))
@@ -25,7 +15,6 @@ local TweenService = cloneref(game:GetService("TweenService"))
 local LogService = cloneref(game:GetService("LogService"))
 local GuiService = cloneref(game:GetService("GuiService"))
 
--- Request function compatibility
 local request = (syn and syn.request) or (http and http.request) or http_request or (fluxus and fluxus.request) or request
 
 local TOGGLE_KEY = Enum.KeyCode.RightControl
@@ -158,6 +147,7 @@ local currentBestMatch = nil
 local lastTimerValue = nil
 local lastTimerChangeTime = 0
 local lastPrefixStatus = "waiting"
+
 
 if logConn then logConn:Disconnect() end
 logConn = LogService.MessageOut:Connect(function(message, type)
@@ -1390,6 +1380,8 @@ local function RefreshCustomWords()
             lbl.BackgroundTransparency = 1
             lbl.TextXAlignment = Enum.TextXAlignment.Left
 
+            -- Removed nested invisible button to fix click handling
+            
             local del = Instance.new("TextButton", row)
             del.Text = "X"
             del.Font = Enum.Font.GothamBold
@@ -1726,6 +1718,7 @@ do
         sVal = sVal:lower():gsub("[%s%c]+", "")
         eVal = eVal:lower():gsub("[%s%c]+", "")
         
+        
         suffixMode = eVal
         Config.SuffixMode = eVal
         
@@ -1752,6 +1745,7 @@ do
         
         for _, w in ipairs(bucket) do
             local matchStart = (sVal == "") or (w:sub(1, #sVal) == sVal)
+            -- We can use the global vars now or local, doesn't matter much for this loop
             local matchEnd = (eVal == "") or (w:sub(-#eVal) == eVal)
             local matchLen = (not lVal) or (#w == lVal)
             
@@ -1773,7 +1767,7 @@ do
                 SmartType(w, lastDetected, true, true)
                 Tween(row, {BackgroundColor3 = THEME.Accent}, 0.2)
                 task.delay(0.2, function()
-                    Tween(row, {BackgroundColor3 = (i % 2 == 0) and Color3.fromRGB(25,25,30) or Color3.fromRGB(30,30,35)}, 0.2)
+                     Tween(row, {BackgroundColor3 = (i % 2 == 0) and Color3.fromRGB(25,25,30) or Color3.fromRGB(30,30,35)}, 0.2)
                 end)
             end)
             
@@ -1786,6 +1780,8 @@ do
             lbl.Position = UDim2.new(0, 5, 0, 0)
             lbl.BackgroundTransparency = 1
             lbl.TextXAlignment = Enum.TextXAlignment.Left
+
+            -- Removed nested invisible button to fix click handling
         end
         
         WBList.CanvasSize = UDim2.new(0,0,0, WBLayout.AbsoluteContentSize.Y)
@@ -1888,6 +1884,7 @@ local function CalculateDelayForKeys(prevChar, nextChar, cpmOverride, currentTim
     end
 end
 
+local VirtualUser = game:GetService("VirtualUser")
 local isMobile = UserInputService.TouchEnabled and not UserInputService.KeyboardEnabled
 
 local function GetKeyCode(char)
@@ -1904,6 +1901,9 @@ local function GetKeyCode(char)
             if char == "z" then return Enum.KeyCode.W end
             if char == "w" then return Enum.KeyCode.Z end
             if char == "m" then return Enum.KeyCode.Semicolon end -- M is often next to L
+            -- NOTE: AZERTY is tricky because M can vary, but standard AZERTY FR places M right of L (where semi-colon is on QWERTY)
+            -- However, many games might use scan codes where M is actually comma or something else depending on the specific AZERTY variant.
+            -- For standard AZERTY (France), M is indeed usually where ; is.
         end
         return Enum.KeyCode[char:upper()]
     end
