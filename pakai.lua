@@ -12,16 +12,17 @@ local THEME = { Background = Color3.fromRGB(20, 20, 24), ItemBG = Color3.fromRGB
 local function ColorToRGB(c) return string.format("%d,%d,%d", math.floor(c.R * 255), math.floor(c.G * 255), math.floor(c.B * 255)) end
 
 local ConfigFile = "WordHelper_Config.json"
-local Config = { CPM = 550, Blatant = false, Humanize = true, FingerModel = true, SortMode = "Random", SuffixMode = "", LengthMode = 0, AutoPlay = false, AutoJoin = false, AutoJoinSettings = { _1v1 = true, _4p = true, _8p = true }, PanicMode = true, ShowKeyboard = false, ErrorRate = 5, ThinkDelay = 0.8, RiskyMistakes = false, CustomWords = {}, MinTypeSpeed = 50, MaxTypeSpeed = 3000, KeyboardLayout = "QWERTY" }
+local Config = { CPM = 550, Blatant = "Off", BlatantThreshold = 7, Humanize = true, FingerModel = true, SortMode = "Random", SuffixMode = "", LengthMode = 0, AutoPlay = false, AutoJoin = false, AutoJoinSettings = { _1v1 = true, _4p = true, _8p = true }, PanicMode = true, ShowKeyboard = false, ErrorRate = 5, ThinkDelay = 0.8, RiskyMistakes = false, CustomWords = {}, MinTypeSpeed = 50, MaxTypeSpeed = 3000, KeyboardLayout = "QWERTY" }
 
 local function SaveConfig() if writefile then writefile(ConfigFile, HttpService:JSONEncode(Config)) end end
 local function LoadConfig() if isfile and isfile(ConfigFile) then local success, decoded = pcall(function() return HttpService:JSONDecode(readfile(ConfigFile)) end); if success and decoded then for k, v in pairs(decoded) do Config[k] = v end end end end
 LoadConfig()
 
-local currentCPM, isBlatant, useHumanization, useFingerModel = Config.CPM, Config.Blatant, Config.Humanize, Config.FingerModel
+local currentCPM, blatantSetting, useHumanization, useFingerModel = Config.CPM, Config.Blatant or "Off", Config.Humanize, Config.FingerModel
 local sortMode, suffixMode, lengthMode, autoPlay = Config.SortMode, Config.SuffixMode or "", Config.LengthMode or 0, Config.AutoPlay
 local autoJoin, panicMode, showKeyboard, errorRate = Config.AutoJoin, Config.PanicMode, Config.ShowKeyboard, Config.ErrorRate
 local thinkDelayCurrent, riskyMistakes, keyboardLayout = Config.ThinkDelay, Config.RiskyMistakes, Config.KeyboardLayout or "QWERTY"
+local blatantThreshold, isBlatant = Config.BlatantThreshold or 7, false
 
 local isTyping, isAutoPlayScheduled, lastTypingStart, runConn, inputConn, logConn, unloaded = false, false, 0, nil, nil, nil, false
 local isMyTurnLogDetected, logRequiredLetters, turnExpiryTime, Blacklist, UsedWords = false, "", 0, {}, {}
@@ -215,7 +216,7 @@ local function CreateDropdown(parent, text, options, default, callback)
     return container
 end
 
-local LayoutDropdown = CreateDropdown(TogglesFrame, "Layout", {"QWERTY", "QWERTZ", "AZERTY"}, keyboardLayout, function(val) keyboardLayout = val; Config.KeyboardLayout = keyboardLayout; GenerateKeyboard(); SaveConfig() end); LayoutDropdown.Position = UDim2.new(0, 150, 0, 145)
+local LayoutDropdown = CreateDropdown(TogglesFrame, "Layout", {"QWERTY", "QWERTZ", "AZERTY"}, keyboardLayout, function(val) keyboardLayout = val; Config.KeyboardLayout = keyboardLayout; GenerateKeyboard(); SaveConfig() end); LayoutDropdown.Position = UDim2.new(0, 150, 0, 143)
 
 UserInputService.InputBegan:Connect(function(input)
     if not showKeyboard then return end
@@ -267,12 +268,25 @@ end
 
 CreateCheckbox("1v1", UDim2.new(0, 15, 0, 88), "_1v1"); CreateCheckbox("4 Player", UDim2.new(0, 110, 0, 88), "_4p"); CreateCheckbox("8 Player", UDim2.new(0, 205, 0, 88), "_8p")
 
-local BlatantBtn = CreateToggle("Blatant Mode: "..(isBlatant and "ON" or "OFF"), UDim2.new(0, 15, 0, 115), function() isBlatant = not isBlatant; Config.Blatant = isBlatant; return isBlatant, "Blatant Mode: "..(isBlatant and "ON" or "OFF"), isBlatant and Color3.fromRGB(255, 80, 80) or THEME.SubText end); BlatantBtn.TextColor3 = isBlatant and Color3.fromRGB(255, 80, 80) or THEME.SubText; BlatantBtn.Size = UDim2.new(0, 130, 0, 24)
-local RiskyBtn = CreateToggle("Risky Mistakes: "..(riskyMistakes and "ON" or "OFF"), UDim2.new(0, 150, 0, 115), function() riskyMistakes = not riskyMistakes; Config.RiskyMistakes = riskyMistakes; return riskyMistakes, "Risky Mistakes: "..(riskyMistakes and "ON" or "OFF"), riskyMistakes and Color3.fromRGB(255, 80, 80) or THEME.SubText end); RiskyBtn.TextColor3 = riskyMistakes and Color3.fromRGB(255, 80, 80) or THEME.SubText; RiskyBtn.Size = UDim2.new(0, 130, 0, 24)
+local BlatantDropdown = CreateDropdown(TogglesFrame, "Blatant", {"Off", "On", "Auto"}, blatantSetting, function(val)
+    blatantSetting = val
+    Config.Blatant = val
+    if blatantSetting == "On" then isBlatant = true else isBlatant = false end
+    SaveConfig()
+end); BlatantDropdown.Position = UDim2.new(0, 15, 0, 115)
 
-local ManageWordsBtn = Instance.new("TextButton", TogglesFrame); ManageWordsBtn.Text = "Manage Custom Words"; ManageWordsBtn.Font = Enum.Font.GothamMedium; ManageWordsBtn.TextSize = 11; ManageWordsBtn.TextColor3 = THEME.Accent; ManageWordsBtn.BackgroundColor3 = THEME.Background; ManageWordsBtn.Size = UDim2.new(0, 130, 0, 24); ManageWordsBtn.Position = UDim2.new(0, 15, 0, 145); Instance.new("UICorner", ManageWordsBtn).CornerRadius = UDim.new(0, 4)
-local WordBrowserBtn = Instance.new("TextButton", TogglesFrame); WordBrowserBtn.Text = "Word Browser"; WordBrowserBtn.Font = Enum.Font.GothamMedium; WordBrowserBtn.TextSize = 11; WordBrowserBtn.TextColor3 = Color3.fromRGB(200, 150, 255); WordBrowserBtn.BackgroundColor3 = THEME.Background; WordBrowserBtn.Size = UDim2.new(0, 265, 0, 24); WordBrowserBtn.Position = UDim2.new(0, 15, 0, 175); Instance.new("UICorner", WordBrowserBtn).CornerRadius = UDim.new(0, 4)
-local ServerBrowserBtn = Instance.new("TextButton", TogglesFrame); ServerBrowserBtn.Text = "Server Browser"; ServerBrowserBtn.Font = Enum.Font.GothamMedium; ServerBrowserBtn.TextSize = 11; ServerBrowserBtn.TextColor3 = Color3.fromRGB(100, 200, 255); ServerBrowserBtn.BackgroundColor3 = THEME.Background; ServerBrowserBtn.Size = UDim2.new(0, 265, 0, 24); ServerBrowserBtn.Position = UDim2.new(0, 15, 0, 205); Instance.new("UICorner", ServerBrowserBtn).CornerRadius = UDim.new(0, 4)
+local thresholdOpts = {}; for i=1,14 do table.insert(thresholdOpts, i.."s") end
+local ThresholdDropdown = CreateDropdown(TogglesFrame, "Timer", thresholdOpts, blatantThreshold.."s", function(val)
+    blatantThreshold = tonumber(val:match("%d+"))
+    Config.BlatantThreshold = blatantThreshold
+    SaveConfig()
+end); ThresholdDropdown.Position = UDim2.new(0, 150, 0, 115)
+
+local RiskyBtn = CreateToggle("Risky Mistakes: "..(riskyMistakes and "ON" or "OFF"), UDim2.new(0, 15, 0, 143), function() riskyMistakes = not riskyMistakes; Config.RiskyMistakes = riskyMistakes; return riskyMistakes, "Risky Mistakes: "..(riskyMistakes and "ON" or "OFF"), riskyMistakes and Color3.fromRGB(255, 80, 80) or THEME.SubText end); RiskyBtn.TextColor3 = riskyMistakes and Color3.fromRGB(255, 80, 80) or THEME.SubText; RiskyBtn.Size = UDim2.new(0, 130, 0, 24)
+
+local ManageWordsBtn = Instance.new("TextButton", TogglesFrame); ManageWordsBtn.Text = "Manage Custom Words"; ManageWordsBtn.Font = Enum.Font.GothamMedium; ManageWordsBtn.TextSize = 11; ManageWordsBtn.TextColor3 = THEME.Accent; ManageWordsBtn.BackgroundColor3 = THEME.Background; ManageWordsBtn.Size = UDim2.new(0, 265, 0, 24); ManageWordsBtn.Position = UDim2.new(0, 15, 0, 171); Instance.new("UICorner", ManageWordsBtn).CornerRadius = UDim.new(0, 4)
+local WordBrowserBtn = Instance.new("TextButton", TogglesFrame); WordBrowserBtn.Text = "Word Browser"; WordBrowserBtn.Font = Enum.Font.GothamMedium; WordBrowserBtn.TextSize = 11; WordBrowserBtn.TextColor3 = Color3.fromRGB(200, 150, 255); WordBrowserBtn.BackgroundColor3 = THEME.Background; WordBrowserBtn.Size = UDim2.new(0, 265, 0, 24); WordBrowserBtn.Position = UDim2.new(0, 15, 0, 199); Instance.new("UICorner", WordBrowserBtn).CornerRadius = UDim.new(0, 4)
+local ServerBrowserBtn = Instance.new("TextButton", TogglesFrame); ServerBrowserBtn.Text = "Server Browser"; ServerBrowserBtn.Font = Enum.Font.GothamMedium; ServerBrowserBtn.TextSize = 11; ServerBrowserBtn.TextColor3 = Color3.fromRGB(100, 200, 255); ServerBrowserBtn.BackgroundColor3 = THEME.Background; ServerBrowserBtn.Size = UDim2.new(0, 265, 0, 24); ServerBrowserBtn.Position = UDim2.new(0, 15, 0, 227); Instance.new("UICorner", ServerBrowserBtn).CornerRadius = UDim.new(0, 4)
 
 local CustomWordsFrame = Instance.new("Frame", ScreenGui); CustomWordsFrame.Name = "CustomWordsFrame"; CustomWordsFrame.Size = UDim2.new(0, 250, 0, 350); CustomWordsFrame.Position = UDim2.new(0.5, -125, 0.5, -175); CustomWordsFrame.BackgroundColor3 = THEME.Background; CustomWordsFrame.Visible = false; CustomWordsFrame.ClipsDescendants = true; EnableDragging(CustomWordsFrame); Instance.new("UICorner", CustomWordsFrame).CornerRadius = UDim.new(0, 8); local CWStroke = Instance.new("UIStroke", CustomWordsFrame); CWStroke.Color = THEME.Accent; CWStroke.Transparency = 0.5; CWStroke.Thickness = 2
 local CWHeader = Instance.new("TextLabel", CustomWordsFrame); CWHeader.Text = "Custom Words Manager"; CWHeader.Font = Enum.Font.GothamBold; CWHeader.TextSize = 14; CWHeader.TextColor3 = THEME.Text; CWHeader.Size = UDim2.new(1, 0, 0, 35); CWHeader.BackgroundTransparency = 1
@@ -567,6 +581,13 @@ runConn = RunService.RenderStepped:Connect(function()
         if isTyping and (now - lastTypingStart) > 15 then isTyping = false; isAutoPlayScheduled = false; StatusText.Text = "Typing State Reset (Watchdog)"; StatusText.TextColor3 = THEME.Warning end
         local isVisible = (frame and frame.Parent and ((frame.Parent:IsA("ScreenGui") and frame.Parent.Enabled) or (frame.Parent:IsA("GuiObject") and frame.Parent.Visible)))
         local seconds = nil; if isVisible then local circle = frame:FindFirstChild("Circle"); local timerLbl = circle and circle:FindFirstChild("Timer") and circle.Timer:FindFirstChild("Seconds"); if timerLbl then seconds = tonumber(timerLbl.Text:match("([%d%.]+)")); StatsData.Frame.Visible = true; StatsData.Timer.Text = timerLbl.Text; StatsData.Timer.TextColor3 = (seconds and seconds < 3) and Color3.fromRGB(255, 80, 80) or THEME.Text end else StatsData.Frame.Visible = false end
+        
+        local targetIsBlatant, targetHumanize, targetError, targetSort = (blatantSetting == "On"), Config.Humanize, Config.ErrorRate, Config.SortMode
+        if blatantSetting == "Auto" and isVisible and seconds and seconds <= blatantThreshold then
+            targetIsBlatant, targetHumanize, targetError, targetSort = true, false, 0, "Shortest"
+        end
+        if isBlatant ~= targetIsBlatant or sortMode ~= targetSort then forceUpdateList = true end
+        isBlatant, useHumanization, errorRate, sortMode = targetIsBlatant, targetHumanize, targetError, targetSort
 
         local isMyTurn, requiredLetter = GetTurnInfo(frame); if (now - lastWordCheck) > 0.05 then cachedDetected, cachedCensored = GetCurrentGameWord(frame); lastWordCheck = now end; local detected, censored = cachedDetected, cachedCensored
         if isVisible and isMyTurn and not isTyping and seconds and seconds < 1.5 then local b = Buckets[(requiredLetter or ""):lower()]; if b then local bestWord, bestLen = nil, 999; for _, w in ipairs(b) do if not Blacklist[w] and not UsedWords[w] and w:sub(1, #detected) == detected and #w < bestLen then bestWord = w; bestLen = #w end end; if bestWord then StatusText.Text = "PANIC SAVE!"; StatusText.TextColor3 = Color3.fromRGB(255, 50, 50); SmartType(bestWord, detected, false) end end end
