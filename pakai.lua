@@ -42,8 +42,7 @@ end
 local ConfigFile = "WordHelper_Config.json"
 local Config = {
     CPM = 550,
-    BlatantMode = "Off", -- Changed from Blatant
-    BlatantThreshold = 7, -- New threshold
+    Blatant = false,
     Humanize = true,
     FingerModel = true,
     SortMode = "Random",
@@ -84,9 +83,7 @@ end
 LoadConfig()
 
 local currentCPM = Config.CPM
-local blatantMode = Config.BlatantMode or "Off"
-local isBlatant = (blatantMode == "On")
-local blatantThreshold = Config.BlatantThreshold or 7
+local isBlatant = Config.Blatant
 local useHumanization = Config.Humanize
 local useFingerModel = Config.FingerModel
 local sortMode = Config.SortMode
@@ -100,14 +97,6 @@ local errorRate = Config.ErrorRate
 local thinkDelayCurrent = Config.ThinkDelay
 local riskyMistakes = Config.RiskyMistakes
 local keyboardLayout = Config.KeyboardLayout or "QWERTY"
-
--- Auto Blatant state tracking
-local wasAutoBlatantActive = false
-local savedSettings = {
-    Humanize = true,
-    ErrorRate = 0,
-    SortMode = "Random"
-}
 
 local isTyping = false
 local isAutoPlayScheduled = false
@@ -1088,37 +1077,15 @@ CreateCheckbox("1v1", UDim2.new(0, 15, 0, 88), "_1v1")
 CreateCheckbox("4 Player", UDim2.new(0, 110, 0, 88), "_4p")
 CreateCheckbox("8 Player", UDim2.new(0, 205, 0, 88), "_8p")
 
-local BlatantModeDropdown = CreateDropdown(TogglesFrame, "Blatant", {"Off", "On", "Auto"}, blatantMode, function(val)
-    blatantMode = val
-    Config.BlatantMode = val
-    isBlatant = (blatantMode == "On")
-    SaveConfig()
+local BlatantBtn = CreateToggle("Blatant Mode: "..(isBlatant and "ON" or "OFF"), UDim2.new(0, 15, 0, 115), function()
+    isBlatant = not isBlatant
+    Config.Blatant = isBlatant
+    return isBlatant, "Blatant Mode: "..(isBlatant and "ON" or "OFF"), isBlatant and Color3.fromRGB(255, 80, 80) or THEME.SubText
 end)
-BlatantModeDropdown.Position = UDim2.new(0, 15, 0, 115)
+BlatantBtn.TextColor3 = isBlatant and Color3.fromRGB(255, 80, 80) or THEME.SubText
+BlatantBtn.Size = UDim2.new(0, 130, 0, 24)
 
-local thresholdOptions = {}
-for i = 1, 14 do table.insert(thresholdOptions, tostring(i) .. "s") end
-
-local ThresholdDropdown = CreateDropdown(TogglesFrame, "Auto At", thresholdOptions, blatantThreshold .. "s", function(val)
-    local num = tonumber(val:match("%d+"))
-    if num then
-        blatantThreshold = num
-        Config.BlatantThreshold = num
-        SaveConfig()
-    end
-end)
-ThresholdDropdown.Position = UDim2.new(0, 150, 0, 115)
-ThresholdDropdown.Size = UDim2.new(0, 130, 0, 24)
-
-local RiskyBtn = CreateToggle("Risky Mistakes: "..(riskyMistakes and "ON" or "OFF"), UDim2.new(0, 15, 0, 143), function()
-    riskyMistakes = not riskyMistakes
-    Config.RiskyMistakes = riskyMistakes
-    return riskyMistakes, "Risky Mistakes: "..(riskyMistakes and "ON" or "OFF"), riskyMistakes and Color3.fromRGB(255, 80, 80) or THEME.SubText
-end)
-RiskyBtn.TextColor3 = riskyMistakes and Color3.fromRGB(255, 80, 80) or THEME.SubText
-RiskyBtn.Size = UDim2.new(0, 130, 0, 24)
-
--- Move subsequent buttons down
+local RiskyBtn = CreateToggle("Risky Mistakes: "..(riskyMistakes and "ON" or "OFF"), UDim2.new(0, 150, 0, 115), function()
     riskyMistakes = not riskyMistakes
     Config.RiskyMistakes = riskyMistakes
     return riskyMistakes, "Risky Mistakes: "..(riskyMistakes and "ON" or "OFF"), riskyMistakes and Color3.fromRGB(255, 80, 80) or THEME.SubText
@@ -1133,7 +1100,7 @@ ManageWordsBtn.TextSize = 11
 ManageWordsBtn.TextColor3 = THEME.Accent
 ManageWordsBtn.BackgroundColor3 = THEME.Background
 ManageWordsBtn.Size = UDim2.new(0, 130, 0, 24)
-ManageWordsBtn.Position = UDim2.new(0, 150, 0, 143)
+ManageWordsBtn.Position = UDim2.new(0, 15, 0, 145)
 Instance.new("UICorner", ManageWordsBtn).CornerRadius = UDim.new(0, 4)
 
 local WordBrowserBtn = Instance.new("TextButton", TogglesFrame)
@@ -1143,7 +1110,7 @@ WordBrowserBtn.TextSize = 11
 WordBrowserBtn.TextColor3 = Color3.fromRGB(200, 150, 255)
 WordBrowserBtn.BackgroundColor3 = THEME.Background
 WordBrowserBtn.Size = UDim2.new(0, 265, 0, 24)
-WordBrowserBtn.Position = UDim2.new(0, 15, 0, 171)
+WordBrowserBtn.Position = UDim2.new(0, 15, 0, 175)
 Instance.new("UICorner", WordBrowserBtn).CornerRadius = UDim.new(0, 4)
 
 local ServerBrowserBtn = Instance.new("TextButton", TogglesFrame)
@@ -1153,7 +1120,7 @@ ServerBrowserBtn.TextSize = 11
 ServerBrowserBtn.TextColor3 = Color3.fromRGB(100, 200, 255)
 ServerBrowserBtn.BackgroundColor3 = THEME.Background
 ServerBrowserBtn.Size = UDim2.new(0, 265, 0, 24)
-ServerBrowserBtn.Position = UDim2.new(0, 15, 0, 201)
+ServerBrowserBtn.Position = UDim2.new(0, 15, 0, 205)
 Instance.new("UICorner", ServerBrowserBtn).CornerRadius = UDim.new(0, 4)
 
 local CustomWordsFrame = Instance.new("Frame", ScreenGui)
@@ -2609,43 +2576,6 @@ runConn = RunService.RenderStepped:Connect(function()
             end
         else
             StatsData.Frame.Visible = false
-        end
-
-        -- Auto Blatant Logic
-        if blatantMode == "Auto" then
-            if isVisible and seconds and seconds <= blatantThreshold then
-                if not wasAutoBlatantActive then
-                    savedSettings.Humanize = useHumanization
-                    savedSettings.ErrorRate = errorRate
-                    savedSettings.SortMode = sortMode
-                    
-                    isBlatant = true
-                    useHumanization = false
-                    errorRate = 0
-                    sortMode = "Shortest"
-                    wasAutoBlatantActive = true
-                    
-                    if HumanizeBtn then HumanizeBtn.Text = "Humanize: OFF" HumanizeBtn.TextColor3 = Color3.fromRGB(255, 100, 100) end
-                    if ErrorLabel then ErrorLabel.Text = "Error Rate: 0% (Auto)" end
-                    if SortBtn then SortBtn.Text = "Sort: Shortest" end
-                    forceUpdateList = true
-                    ShowToast("Auto Blatant: ACTIVE", "warning")
-                end
-            else
-                if wasAutoBlatantActive then
-                    useHumanization = savedSettings.Humanize
-                    errorRate = savedSettings.ErrorRate
-                    sortMode = savedSettings.SortMode
-                    isBlatant = false
-                    wasAutoBlatantActive = false
-                    
-                    if HumanizeBtn then HumanizeBtn.Text = "Humanize: "..(useHumanization and "ON" or "OFF") HumanizeBtn.TextColor3 = useHumanization and THEME.Success or Color3.fromRGB(255, 100, 100) end
-                    if ErrorLabel then ErrorLabel.Text = "Error Rate: " .. errorRate .. "%" end
-                    if SortBtn then SortBtn.Text = "Sort: "..sortMode end
-                    forceUpdateList = true
-                    ShowToast("Auto Blatant: OFF", "success")
-                end
-            end
         end
 
         local isMyTurn, requiredLetter = GetTurnInfo(frame)
